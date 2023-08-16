@@ -66,6 +66,51 @@ void housekeeping_task_user(void) {
     housekeeping_task_keychron();
 }
 
+void keyboard_post_init_user(void) {
+    rgb_matrix_mode(RGB_MATRIX_NONE);
+    rgb_matrix_set_color_all(RGB_BLACK);
+}
+
+uint32_t cancel_cmd(uint32_t trigger_time, void *cb_arg) {
+    if (get_highest_layer(layer_state|default_layer_state) > 0) {
+        return 20;
+    }
+    unregister_code(KC_LCMD);
+    return 0;
+}
+
+bool encoder_update_user(uint8_t index, bool clockwise) {
+    if (get_highest_layer(layer_state|default_layer_state) == 0) {
+        if (clockwise) {
+            tap_code_delay(KC_VOLU, 10);
+        } else {
+            tap_code_delay(KC_VOLD, 10);
+        }
+    } else {  
+        if ((get_mods() & MOD_BIT(KC_LCMD)) != MOD_BIT(KC_LCMD)) {
+            register_code(KC_LCMD);
+            defer_exec(20, cancel_cmd, NULL);
+        }
+        if (clockwise) {
+            tap_code(KC_TAB);
+        } else {
+            tap_code16(S(KC_TAB));
+        }
+    }
+    return false;
+}
+
+void rgb_matrix_indicators_kb(void) {
+    switch(get_highest_layer(layer_state|default_layer_state)) {
+        case 1:
+            rgb_matrix_set_color_all(RGB_BLACK);
+            rgb_matrix_set_color_all(25, 25, 112);
+            break;
+        default:
+            rgb_matrix_set_color_all(RGB_BLACK);
+            break;
+    }
+}
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (!process_record_keychron(keycode, record)) {
         return false;
